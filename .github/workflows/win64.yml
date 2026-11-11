@@ -1,4 +1,6 @@
-# Win64 portable build — produces a self-contained Planify zip under MSYS2/MINGW64.
+# Win64 portable build — produces a self-contained Planify zip under MSYS2/UCRT64.
+# (The old MINGW64 environment is retired upstream: the GTK stack is no longer
+# packaged for it, so UCRT64 is the toolchain to build against.)
 #
 # Feature integrations that don't apply to Windows (portal, evolution-data-server,
 # GNOME Online Accounts, GNOME Shell search provider, quick-add/cli helpers) are
@@ -34,10 +36,10 @@ jobs:
           # system chrono package exists
           submodules: recursive
 
-      - name: Setup MSYS2 (MINGW64)
+      - name: Setup MSYS2 (UCRT64)
         uses: msys2/setup-msys2@v2
         with:
-          msystem: MINGW64
+          msystem: UCRT64
           update: true
           release: true
           pacboy: >-
@@ -51,7 +53,7 @@ jobs:
         run: |
           # Install into a private prefix inside the workspace (the deploy step
           # reassembles a relocatable runtime tree from it).
-          $env:PATH = 'C:\msys64\mingw64\bin;' + $env:PATH
+          $env:PATH = 'C:\msys64\ucrt64\bin;' + $env:PATH
           # force the mingw toolchain (vs. a VS 'cl' that may be present on runners)
           $env:CC = 'gcc'
           $env:CXX = 'g++'
@@ -62,8 +64,8 @@ jobs:
       - name: Package portable zip
         shell: pwsh
         run: |
-          $env:PATH = 'C:\msys64\mingw64\bin;' + $env:PATH
-          scripts/win64-deploy.ps1 -MsysRoot 'C:\msys64' -Prefix "$PWD\build\win64-install" -ProjectRoot "$PWD"
+          $env:PATH = 'C:\msys64\ucrt64\bin;' + $env:PATH
+          scripts/win64-deploy.ps1 -MsysRoot 'C:\msys64' -ToolchainDir 'ucrt64' -Prefix "$PWD\build\win64-install" -ProjectRoot "$PWD"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4

@@ -2,7 +2,7 @@
 # win64-deploy.ps1 — assemble a self-contained portable Planify zip for win64.
 #
 # Takes a meson install prefix (a real install tree) and combines it with the
-# runtime pieces from the MSYS2 mingw64 environment into a relocatable tree:
+# runtime pieces from the MSYS2 toolchain environment into a relocatable tree:
 #
 #     bin/       planify.exe, libplanify-0.dll + every needed runtime DLL
 #     lib/       gio TLS modules, gdk-pixbuf loaders (+ loaders.cache)
@@ -10,7 +10,7 @@
 #     etc/fonts  fontconfig configuration (system fonts are picked up too)
 #
 # Usage (from a MSYS2 or plain PowerShell environment):
-#     ./scripts/win64-deploy.ps1 -Prefix <meson install prefix> [-MsysRoot C:\msys64]
+#     ./scripts/win64-deploy.ps1 -Prefix <meson install prefix> [-MsysRoot C:\msys64] [-ToolchainDir ucrt64]
 #
 
 param (
@@ -18,19 +18,23 @@ param (
     [Parameter(Mandatory = $true)][string]$Prefix,
     [string]$ProjectRoot = (Split-Path -Parent $PSScriptRoot),
     [string]$Stage = '',
-    [string]$OutFile = ''
+    [string]$OutFile = '',
+    # MSYS2 environment the build was made with ('mingw64' or 'ucrt64').
+    # CI builds against UCRT64 (MINGW64 is retired upstream); local builds
+    # may still use the legacy mingw64 environment.
+    [string]$ToolchainDir = 'ucrt64'
 )
 
 $ErrorActionPreference = 'Stop'
 
-$mingwRoot = Join-Path $MsysRoot 'mingw64'
+$mingwRoot = Join-Path $MsysRoot $ToolchainDir
 $mingwBin = Join-Path $mingwRoot 'bin'
 
 $objdump = $null
 foreach ($od in @((Join-Path $mingwBin 'objdump.exe'), (Get-Command objdump -ErrorAction SilentlyContinue).Source)) {
     if ($od -and (Test-Path $od)) { $objdump = $od; break }
 }
-if (-not $objdump) { throw "objdump.exe not found in $mingwBin (install the mingw-w64-x86_64-toolchain package)." }
+if (-not $objdump) { throw "objdump.exe not found in $mingwBin (install the toolchain package for the $ToolchainDir environment)." }
 
 $exeName = if (Test-Path (Join-Path $Prefix 'bin\io.github.alainm23.planify.exe')) {
     'io.github.alainm23.planify.exe'
