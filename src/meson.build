@@ -46,6 +46,7 @@ sources = files(
   'Services/ProductivityService.vala',
 
   'Utils/TaskUtils.vala',
+  'Utils/PathUtils.vala',
 
   'Layouts/Sidebar.vala',
   'Layouts/FilterPaneChild.vala',
