@@ -76,7 +76,10 @@ public class Widgets.LabelsPickerCore : Adw.Bin {
 
     public signal void close ();
 
-    private Gee.HashMap<ulong, weak GLib.Object> signals_map = new Gee.HashMap<ulong, weak GLib.Object> ();
+    // Strong references: this map must keep the sender objects alive until
+    // clean_up () disconnects their handlers — disconnecting through a weak
+    // ref to an already-finalized widget is a use-after-free.
+    private Gee.HashMap<ulong, GLib.Object> signals_map = new Gee.HashMap<ulong, GLib.Object> ();
 
     public LabelsPickerCore (LabelPickerType picker_type) {
         Object (

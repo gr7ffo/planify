@@ -171,6 +171,11 @@ public class Layouts.FilterPaneChild : Gtk.FlowBoxChild {
             Services.Settings.get_default ().settings.get_string ("local-inbox-project-id")
         );
 
+        if (current_inbox_project == null) {
+            update_count_label (0);
+            return;
+        }
+
         update_count_label (current_inbox_project.item_count);
         inbox_count_signal_id = current_inbox_project.count_updated.connect (() => {
             update_count_label (current_inbox_project.item_count);

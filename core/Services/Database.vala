@@ -191,8 +191,28 @@ public class Services.Database : GLib.Object {
         create_triggers ();
         patch_database ();
         restore_missing_item_labels ();
+        heal_lost_inbox_setting ();
         opened ();
         is_opened = true;
+    }
+
+    /*
+     *  The inbox project id lives in GSettings; a fresh settings profile
+     *  (new machine, wiped config, changed settings backend) would otherwise
+     *  leave every inbox consumer holding a NULL project. Restore it from
+     *  the local inbox project in the database.
+     */
+    private void heal_lost_inbox_setting () {
+        if (Services.Settings.get_default ().settings.get_string ("local-inbox-project-id") != "") {
+            return;
+        }
+
+        foreach (Objects.Project project in Services.Store.instance ().projects) {
+            if (project.source_id == SourceType.LOCAL.to_string () && project.inbox_project) {
+                Services.Settings.get_default ().settings.set_string ("local-inbox-project-id", project.id);
+                break;
+            }
+        }
     }
 
     private void create_tables () {
