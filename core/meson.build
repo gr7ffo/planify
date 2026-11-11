@@ -157,6 +157,10 @@ endif
 core_lib = shared_library(
     'planify',
     core_files,
+    # config.vala (the Build namespace) is generated in the root meson.build;
+    # core needs it too (e.g. PathUtils' Unix prefix fallback). Its constants
+    # compile to C defines, so including it here and in src is harmless.
+    config_file,
     dependencies: [ core_deps, m_dep ],
     install: true,
     install_dir: [true, join_paths(get_option('includedir'), 'planify'), true],

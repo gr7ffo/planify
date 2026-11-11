@@ -77,9 +77,14 @@ endif
 # pulled in transitively by the evolution-only CalendarEvents.vala).
 add_project_arguments(['--pkg=posix'], language: 'vala')
 
-# Project-local vapi overrides (icu-uc always; libical-glib needed for win64
-# builds since the MSYS2 libical package doesn't ship a vapi).
+# Project-local vapi overrides: icu-uc has an in-tree fallback used on every
+# platform. libical-glib is a win64-only fallback (the MSYS2 libical package
+# ships no vapi at all) and lives in a separate directory so it cannot shadow
+# the newer system vapi on Unix builds (libical 4.x API differs).
 add_project_arguments(['--vapidir=' + meson.project_source_root() / 'vapi'], language: 'vala')
+if host_windows
+  add_project_arguments(['--vapidir=' + meson.project_source_root() / 'vapi' / 'win64'], language: 'vala')
+endif
 
 if libspelling.found ()
   add_project_arguments(['--define=WITH_LIBSPELLING'], language: 'vala')
