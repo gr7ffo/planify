@@ -37,6 +37,7 @@ jobs:
           submodules: recursive
 
       - name: Setup MSYS2 (UCRT64)
+        id: msys2
         uses: msys2/setup-msys2@v2
         with:
           msystem: UCRT64
@@ -61,8 +62,11 @@ jobs:
       - name: Package portable zip
         shell: pwsh
         run: |
-          $env:PATH = 'C:\msys64\ucrt64\bin;' + $env:PATH
-          scripts/win64-deploy.ps1 -MsysRoot 'C:\msys64' -ToolchainDir 'ucrt64' -Prefix "$PWD\build\win64-install" -ProjectRoot "$PWD"
+          # the action installs MSYS2 outside C:\msys64 on hosted runners;
+          # use its reported location
+          $msysRoot = '${{ steps.msys2.outputs.msys2-location }}'
+          $env:PATH = "$msysRoot\ucrt64\bin;" + $env:PATH
+          scripts/win64-deploy.ps1 -MsysRoot "$msysRoot" -ToolchainDir 'ucrt64' -Prefix "$PWD\build\win64-install" -ProjectRoot "$PWD"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
