@@ -65,7 +65,7 @@ public class Planify : Adw.Application {
 
     construct {
         Intl.setlocale (LocaleCategory.ALL, "");
-        string langpack_dir = Path.build_filename (Build.INSTALL_PREFIX, "share", "locale");
+        string langpack_dir = PathUtils.get_locale_dir ();
         Intl.bindtextdomain (Build.GETTEXT_PACKAGE, langpack_dir);
         Intl.bind_textdomain_codeset (Build.GETTEXT_PACKAGE, "UTF-8");
         Intl.textdomain (Build.GETTEXT_PACKAGE);
@@ -268,6 +268,10 @@ public class Planify : Adw.Application {
     }
 
     public static int main (string[] args) {
+#if WINDOWS
+        // Must run before Gtk initializes pango/GSettings (see PathUtils).
+        PathUtils.setup_environment ();
+#endif
         Planify app = Planify.instance;
         return app.run (args);
     }

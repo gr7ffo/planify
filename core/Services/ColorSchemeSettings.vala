@@ -20,6 +20,21 @@
  */
 
 namespace ColorSchemeSettings {
+#if WINDOWS
+    private const uint32 RRF_RT_REG_DWORD = 0x00000010;
+
+    [CCode (cname = "RegGetValueA", cheader_filename = "windows.h")]
+    private static extern int32 ExternalRegGetValueA (
+        void* h_key,
+        string lp_sub_key,
+        string lp_value,
+        uint32 dw_flags,
+        out uint32 pdw_type,
+        out uint32 pv_data,
+        out uint32 pcb_data
+    );
+#endif
+
     [DBus (name = "org.freedesktop.Accounts")]
     interface FDO.Accounts : Object {
         public abstract string find_user_by_name (string username) throws GLib.Error;
@@ -59,6 +74,30 @@ namespace ColorSchemeSettings {
         private Settings () {}
 
         private void setup_prefers_color_scheme () {
+#if WINDOWS
+            // No XDG desktop portal on Windows: follow the Windows
+            // personalization setting instead. AppsUseLightTheme is a DWORD
+            // where 1 = light apps, 0 = dark apps.
+            uint32 light_theme = 0;
+            uint32 reg_type;
+            uint32 reg_size = (uint32) sizeof (uint32);
+            if (ExternalRegGetValueA (
+                    (void*) 0x80000001, // HKEY_CURRENT_USER
+                    "Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
+                    "AppsUseLightTheme",
+                    RRF_RT_REG_DWORD,
+                    out reg_type, out light_theme, out reg_size
+                ) == 0) {
+                if (light_theme != 0) {
+                    prefers_color_scheme = ColorScheme.LIGHT;
+                } else {
+                    prefers_color_scheme = ColorScheme.DARK;
+                }
+            } else {
+                prefers_color_scheme = ColorScheme.NO_PREFERENCE;
+            }
+            return;
+#else
             try {
                 portal = Portal.Settings.get ();
 
@@ -78,6 +117,7 @@ namespace ColorSchemeSettings {
             }
 
             prefers_color_scheme = ColorScheme.NO_PREFERENCE;
+#endif
         }
     }
 }
