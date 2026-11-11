@@ -20,9 +20,9 @@ param (
     [string]$Stage = '',
     [string]$OutFile = '',
     # MSYS2 environment the build was made with ('mingw64' or 'ucrt64').
-    # CI builds against UCRT64 (MINGW64 is retired upstream); local builds
-    # may still use the legacy mingw64 environment.
-    [string]$ToolchainDir = 'ucrt64'
+    # CI builds against UCRT64 (MINGW64 is retired upstream) and passes
+    # -ToolchainDir ucrt64 explicitly; local builds default to mingw64.
+    [string]$ToolchainDir = 'mingw64'
 )
 
 $ErrorActionPreference = 'Stop'
