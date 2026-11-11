@@ -57,6 +57,7 @@ core/Services/Todoist/TodoistProjects.vala
 core/Utils/Datetime.vala
 core/Utils/JsonUtils.vala
 core/Utils/MarkdownProcessor.vala
+core/Utils/PathUtils.vala
 core/Utils/Util.vala
 core/Widgets/Calendar/Calendar.vala
 core/Widgets/Calendar/CalendarDay.vala
