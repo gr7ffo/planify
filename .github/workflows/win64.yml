@@ -49,15 +49,12 @@ jobs:
             adwaita-icon-theme:p
 
       - name: Build and install
-        shell: pwsh
+        shell: msys2 {0}
         run: |
-          # Install into a private prefix inside the workspace (the deploy step
-          # reassembles a relocatable runtime tree from it).
-          $env:PATH = 'C:\msys64\ucrt64\bin;' + $env:PATH
-          # force the mingw toolchain (vs. a VS 'cl' that may be present on runners)
-          $env:CC = 'gcc'
-          $env:CXX = 'g++'
-          meson setup build -Dprefix="$PWD\build\win64-install" -Dportal=false -Dgoa=false -Devolution=false -Dspelling=disabled -Dlibsecret=disabled
+          # meson is a Python script and only runnable from an MSYS2 shell
+          export CC=gcc CXX=g++
+          # prefix needs forward slashes on Windows (meson string literals)
+          meson setup build -Dprefix="$(cygpath -m "$PWD")/build/win64-install" -Dportal=false -Dgoa=false -Devolution=false -Dspelling=disabled -Dlibsecret=disabled
           meson compile -C build
           meson install -C build
 
