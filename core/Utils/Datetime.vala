@@ -804,6 +804,9 @@ public class Utils.Datetime {
     private static bool locale_day_before_month () {
         if (_day_first == -1) {
             _day_first = 0; // default to month-first if it can't be determined
+#if !WINDOWS
+            // nl_langinfo is glibc/POSIX-only; on win64 keep the month-first
+            // default (no langinfo in the MSVC runtime).
             unowned string d_fmt = Posix.NLItem.D_FMT.to_string ();
             if (d_fmt != null && d_fmt != "") {
                 int day_pos = first_token_pos (d_fmt, "de");   // %d, %e
@@ -812,6 +815,7 @@ public class Utils.Datetime {
                     _day_first = 1;
                 }
             }
+#endif
         }
 
         return _day_first == 1;

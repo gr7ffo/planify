@@ -8,6 +8,14 @@ project(
 # Profile #
 ###########
 
+host_windows = host_machine.system() == 'windows'
+if host_windows
+  # Win64 portable build: helper binaries (quick-add, cli) and GNOME-only
+  # integration (search-provider) are dropped, and notifications are a silent
+  # no-op (GLib has no Windows notification backend).
+  add_project_arguments(['--define=WINDOWS'], language: 'vala')
+endif
+
 profile = get_option('profile')
 if profile == 'development'
   find_program('git')
@@ -46,7 +54,13 @@ sqlite3_dep = dependency('sqlite3')
 libadwaita_dep = dependency('libadwaita-1', version: '>= 1.7.0')
 json_dep = dependency('json-glib-1.0')
 libical_dep = dependency('libical-glib')
-libsecret_dep = dependency('libsecret-1')
+if host_windows
+  # Unused dependency of the original Linux build (no code references the
+  # secret service, and Windows has no keyring) — always skip on win64.
+  libsecret_dep = dependency('libsecret-1', required: false)
+else
+  libsecret_dep = dependency('libsecret-1', required: get_option('libsecret'))
+endif
 libspelling = dependency('libspelling-1', required: get_option('spelling'))
 gtksourceview_dep = dependency('gtksourceview-5')
 m_dep = meson.get_compiler('c').find_library('m', required : false)
@@ -63,9 +77,9 @@ endif
 # pulled in transitively by the evolution-only CalendarEvents.vala).
 add_project_arguments(['--pkg=posix'], language: 'vala')
 
-if icu_uc_dep.found ()
-  add_project_arguments(['--vapidir=' + meson.project_source_root() / 'vapi'], language: 'vala')
-endif
+# Project-local vapi overrides (icu-uc always; libical-glib needed for win64
+# builds since the MSYS2 libical package doesn't ship a vapi).
+add_project_arguments(['--vapidir=' + meson.project_source_root() / 'vapi'], language: 'vala')
 
 if libspelling.found ()
   add_project_arguments(['--define=WITH_LIBSPELLING'], language: 'vala')
@@ -123,9 +137,14 @@ datadir = prefix / get_option('datadir')
 localedir = prefix / get_option ('localedir')
 libexecdir = prefix / get_option('libexecdir')
 
-grep = find_program('grep')
-total_strings_res = run_command(grep, '-c', 'msgid', meson.project_source_root() + '/po/io.github.alainm23.planify.pot', check : true)
-total_strings = total_strings_res.stdout().strip().to_int() - 1
+# Only used for a translation-coverage statistic in the About dialog; skip
+# rather than require the Unix grep tool for the win64 build.
+total_strings = 0
+if not host_windows
+  grep = find_program('grep')
+  total_strings_res = run_command(grep, '-c', 'msgid', meson.project_source_root() + '/po/io.github.alainm23.planify.pot', check : true)
+  total_strings = total_strings_res.stdout().strip().to_int() - 1
+endif
 
 # _NL_TIME_FIRST_WEEKDAY is a glibc-ism
 nl_time_first_weekday_src = '''
@@ -158,22 +177,32 @@ config_file = configure_file(
 
 subdir('core')
 subdir('src')
-subdir('quick-add')
-subdir('cli')
+if not host_windows
+  subdir('quick-add')
+  subdir('cli')
+  subdir('search-provider')
+endif
 subdir('data')
-subdir('search-provider')
 subdir('po')
 
-# Testing
-subdir('test')
+# Testing (needs the Unix-style scratch data dir; skipped for win64)
+if not host_windows
+  subdir('test')
+endif
 
 summary({
   'Tracing': get_option('tracing'),
   'Profile': get_option('profile'),
 }, section: 'Development')
 
-gnome.post_install(
-  glib_compile_schemas: true,
-  gtk_update_icon_cache: true,
-  update_desktop_database: true,
-)
+if host_windows
+  gnome.post_install(
+    glib_compile_schemas: true,
+  )
+else
+  gnome.post_install(
+    glib_compile_schemas: true,
+    gtk_update_icon_cache: true,
+    update_desktop_database: true,
+  )
+endif

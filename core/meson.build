@@ -5,6 +5,7 @@ core_files = files(
 
     'Utils/Util.vala',
     'Utils/Datetime.vala',
+    'Utils/PathUtils.vala',
     'Utils/MarkdownProcessor.vala',
     'Utils/JsonUtils.vala',
 
