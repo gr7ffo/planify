@@ -14,7 +14,15 @@ jobs:
       - uses: actions/checkout@v7
 
       - name: Install gettext
-        run: sudo apt-get update && sudo apt-get install -y gettext
+        run: |
+          # gettext is preinstalled on the runner images; only fall back to
+          # apt (prone to transient mirror/DNS outages) if it is missing
+          if command -v msgfmt > /dev/null 2>&1; then
+            echo "gettext already available: $(msgfmt --version | head -n1)"
+          else
+            sudo apt-get update -o Acquire::Retries=5
+            sudo apt-get install -y --fix-missing gettext
+          fi
 
       - name: Configure git
         run: |
