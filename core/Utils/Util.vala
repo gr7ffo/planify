@@ -398,7 +398,7 @@ public class Util : GLib.Object {
         string _css = """
             popover,
             window {
-                font-size: %s%;
+                font-size: %s%%;
             }
         """;
 
