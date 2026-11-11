@@ -1,0 +1,73 @@
+# Win64 portable build — produces a self-contained Planify zip under MSYS2/MINGW64.
+#
+# Feature integrations that don't apply to Windows (portal, evolution-data-server,
+# GNOME Online Accounts, GNOME Shell search provider, quick-add/cli helpers) are
+# skipped; reminders are a silent no-op (GLib has no Windows notification backend).
+#
+# To publish a zip: run this workflow, then download the `planify-win64` artifact.
+
+name: 'win64 build'
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ['main']
+    paths:
+      - '**.vala'
+      - '**.build'
+      - 'meson_options.txt'
+      - 'scripts/win64-deploy.ps1'
+      - '.github/workflows/win64.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build portable zip (win64)
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # chrono (date library) is consumed as a meson subproject when no
+          # system chrono package exists
+          submodules: recursive
+
+      - name: Setup MSYS2 (MINGW64)
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          release: true
+          pacboy: >-
+            toolchain:p vala:p meson:p ninja:p gettext:p
+            gtk4:p libadwaita:p libgee:p libsoup3:p sqlite3:p json-glib:p
+            libical:p gtksourceview5:p icu:p pango:p
+            adwaita-icon-theme:p
+
+      - name: Build and install
+        shell: pwsh
+        run: |
+          # Install into a private prefix inside the workspace (the deploy step
+          # reassembles a relocatable runtime tree from it).
+          $env:PATH = 'C:\msys64\mingw64\bin;' + $env:PATH
+          # force the mingw toolchain (vs. a VS 'cl' that may be present on runners)
+          $env:CC = 'gcc'
+          $env:CXX = 'g++'
+          meson setup build -Dprefix="$PWD\build\win64-install" -Dportal=false -Dgoa=false -Devolution=false -Dspelling=disabled -Dlibsecret=disabled
+          meson compile -C build
+          meson install -C build
+
+      - name: Package portable zip
+        shell: pwsh
+        run: |
+          $env:PATH = 'C:\msys64\mingw64\bin;' + $env:PATH
+          scripts/win64-deploy.ps1 -MsysRoot 'C:\msys64' -Prefix "$PWD\build\win64-install" -ProjectRoot "$PWD"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: planify-win64
+          path: build/dist/*.zip
+          if-no-files-found: error
